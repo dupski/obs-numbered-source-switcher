@@ -62,30 +62,77 @@ function get_numbered_items()
 end
 
 
+function release_items(items)
+    if items ~= nil then
+        obs.sceneitem_list_release(items)
+    end
+end
+
+
+-- Find the list index of the entry whose visible source item is shown
+function find_visible_index(numbered)
+    for i, entry in ipairs(numbered) do
+        if obs.obs_sceneitem_visible(entry.item) then
+            return i
+        end
+    end
+
+    return nil
+end
+
+
+-- Find the list index of the entry matching a given source number
+function find_index_by_number(numbered, number)
+    if number == nil then
+        return nil
+    end
+
+    for i, entry in ipairs(numbered) do
+        if entry.number == number then
+            return i
+        end
+    end
+
+    return nil
+end
+
+
+-- Show only the entry at target_index and remember it as last shown
+function set_visible_index(numbered, target_index)
+    for i, entry in ipairs(numbered) do
+        obs.obs_sceneitem_set_visible(entry.item, i == target_index)
+    end
+
+    last_shown_number = numbered[target_index].number
+end
+
+
 function switch_source(direction)
     local numbered, items = get_numbered_items()
 
     if numbered == nil or #numbered == 0 then
-        if items ~= nil then
-            obs.sceneitem_list_release(items)
-        end
+        release_items(items)
         return
     end
 
-    -- Find the currently visible numbered source
-    local current_index = nil
-
-    for i, entry in ipairs(numbered) do
-        if obs.obs_sceneitem_visible(entry.item) then
-            current_index = i
-            break
-        end
-    end
-
+    local current_index = find_visible_index(numbered)
     local target_index
 
     if current_index == nil then
-        target_index = (direction > 0) and 1 or #numbered
+        -- Nothing visible; resume relative to the last shown source, if any
+        local last_index = find_index_by_number(numbered, last_shown_number)
+
+        if last_index ~= nil then
+            target_index = last_index + direction
+
+            if target_index > #numbered then
+                target_index = ENABLE_CYCLING and 1 or #numbered
+            elseif target_index < 1 then
+                target_index = ENABLE_CYCLING and #numbered or 1
+            end
+        else
+            target_index = (direction > 0) and 1 or #numbered
+        end
     else
         target_index = current_index + direction
 
@@ -93,33 +140,21 @@ function switch_source(direction)
             if ENABLE_CYCLING then
                 target_index = 1
             else
-                if items ~= nil then
-                    obs.sceneitem_list_release(items)
-                end
+                release_items(items)
                 return
             end
         elseif target_index < 1 then
             if ENABLE_CYCLING then
                 target_index = #numbered
             else
-                if items ~= nil then
-                    obs.sceneitem_list_release(items)
-                end
+                release_items(items)
                 return
             end
         end
     end
 
-    -- Make only the target source visible
-    for i, entry in ipairs(numbered) do
-        obs.obs_sceneitem_set_visible(entry.item, i == target_index)
-    end
-
-    last_shown_number = numbered[target_index].number
-
-    if items ~= nil then
-        obs.sceneitem_list_release(items)
-    end
+    set_visible_index(numbered, target_index)
+    release_items(items)
 end
 
 
@@ -127,21 +162,12 @@ function show_first()
     local numbered, items = get_numbered_items()
 
     if numbered == nil or #numbered == 0 then
-        if items ~= nil then
-            obs.sceneitem_list_release(items)
-        end
+        release_items(items)
         return
     end
 
-    for i, entry in ipairs(numbered) do
-        obs.obs_sceneitem_set_visible(entry.item, i == 1)
-    end
-
-    last_shown_number = numbered[1].number
-
-    if items ~= nil then
-        obs.sceneitem_list_release(items)
-    end
+    set_visible_index(numbered, 1)
+    release_items(items)
 end
 
 
@@ -149,26 +175,21 @@ function hide_sources()
     local numbered, items = get_numbered_items()
 
     if numbered == nil or #numbered == 0 then
-        if items ~= nil then
-            obs.sceneitem_list_release(items)
-        end
+        release_items(items)
         return
     end
 
-    for _, entry in ipairs(numbered) do
-        if obs.obs_sceneitem_visible(entry.item) then
-            last_shown_number = entry.number
-            break
-        end
+    local current_index = find_visible_index(numbered)
+
+    if current_index ~= nil then
+        last_shown_number = numbered[current_index].number
     end
 
     for _, entry in ipairs(numbered) do
         obs.obs_sceneitem_set_visible(entry.item, false)
     end
 
-    if items ~= nil then
-        obs.sceneitem_list_release(items)
-    end
+    release_items(items)
 end
 
 
@@ -176,32 +197,14 @@ function show_source()
     local numbered, items = get_numbered_items()
 
     if numbered == nil or #numbered == 0 then
-        if items ~= nil then
-            obs.sceneitem_list_release(items)
-        end
+        release_items(items)
         return
     end
 
-    local target_index = 1
+    local target_index = find_index_by_number(numbered, last_shown_number) or 1
 
-    if last_shown_number ~= nil then
-        for i, entry in ipairs(numbered) do
-            if entry.number == last_shown_number then
-                target_index = i
-                break
-            end
-        end
-    end
-
-    for i, entry in ipairs(numbered) do
-        obs.obs_sceneitem_set_visible(entry.item, i == target_index)
-    end
-
-    last_shown_number = numbered[target_index].number
-
-    if items ~= nil then
-        obs.sceneitem_list_release(items)
-    end
+    set_visible_index(numbered, target_index)
+    release_items(items)
 end
 
 

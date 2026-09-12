@@ -31,7 +31,7 @@ The script checks the current scene whenever a hotkey is pressed. It sorts numbe
 - **Show First** shows the lowest numbered source.
 - **Hide** hides all numbered sources while remembering the source that was visible.
 - **Show** restores the numbered source that was visible before **Hide**. If there is no remembered source, it shows the lowest numbered source.
-- Cycling wraps from the last source back to the first, and from the first back to the last.
+- **Next** stops at the highest numbered source and **Previous** stops at the lowest numbered source.
 - If no numbered source is currently visible, **Next** selects the lowest number and **Previous** selects the highest number.
 
 Source names must be whole-number strings. Names such as `1.5`, `camera`, or `01` are not treated as numbered sources.

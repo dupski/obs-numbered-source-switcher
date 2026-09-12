@@ -6,10 +6,12 @@
 --
 -- To use it, add the script in OBS under Tools > Scripts, name the sources in
 -- the current scene with consecutive numbers, and configure the two hotkeys
--- under Settings > Hotkeys. The script wraps around at the first and last
--- numbered source.
+-- under Settings > Hotkeys. Set ENABLE_CYCLING to true to wrap from the first
+-- numbered source to the last, or from the last to the first.
 
 obs = obslua
+
+ENABLE_CYCLING = false
 
 hotkey_next = obs.OBS_INVALID_HOTKEY_ID
 hotkey_previous = obs.OBS_INVALID_HOTKEY_ID
@@ -88,9 +90,23 @@ function switch_source(direction)
         target_index = current_index + direction
 
         if target_index > #numbered then
-            target_index = 1
+            if ENABLE_CYCLING then
+                target_index = 1
+            else
+                if items ~= nil then
+                    obs.sceneitem_list_release(items)
+                end
+                return
+            end
         elseif target_index < 1 then
-            target_index = #numbered
+            if ENABLE_CYCLING then
+                target_index = #numbered
+            else
+                if items ~= nil then
+                    obs.sceneitem_list_release(items)
+                end
+                return
+            end
         end
     end
 

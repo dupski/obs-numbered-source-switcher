@@ -13,6 +13,11 @@ obs = obslua
 
 hotkey_next = obs.OBS_INVALID_HOTKEY_ID
 hotkey_previous = obs.OBS_INVALID_HOTKEY_ID
+hotkey_show_first = obs.OBS_INVALID_HOTKEY_ID
+hotkey_hide = obs.OBS_INVALID_HOTKEY_ID
+hotkey_show = obs.OBS_INVALID_HOTKEY_ID
+
+last_shown_number = nil
 
 
 -- Get all scene items whose source names are numbers
@@ -94,6 +99,90 @@ function switch_source(direction)
         obs.obs_sceneitem_set_visible(entry.item, i == target_index)
     end
 
+    last_shown_number = numbered[target_index].number
+
+    if items ~= nil then
+        obs.sceneitem_list_release(items)
+    end
+end
+
+
+function show_first()
+    local numbered, items = get_numbered_items()
+
+    if numbered == nil or #numbered == 0 then
+        if items ~= nil then
+            obs.sceneitem_list_release(items)
+        end
+        return
+    end
+
+    for i, entry in ipairs(numbered) do
+        obs.obs_sceneitem_set_visible(entry.item, i == 1)
+    end
+
+    last_shown_number = numbered[1].number
+
+    if items ~= nil then
+        obs.sceneitem_list_release(items)
+    end
+end
+
+
+function hide_sources()
+    local numbered, items = get_numbered_items()
+
+    if numbered == nil or #numbered == 0 then
+        if items ~= nil then
+            obs.sceneitem_list_release(items)
+        end
+        return
+    end
+
+    for _, entry in ipairs(numbered) do
+        if obs.obs_sceneitem_visible(entry.item) then
+            last_shown_number = entry.number
+            break
+        end
+    end
+
+    for _, entry in ipairs(numbered) do
+        obs.obs_sceneitem_set_visible(entry.item, false)
+    end
+
+    if items ~= nil then
+        obs.sceneitem_list_release(items)
+    end
+end
+
+
+function show_source()
+    local numbered, items = get_numbered_items()
+
+    if numbered == nil or #numbered == 0 then
+        if items ~= nil then
+            obs.sceneitem_list_release(items)
+        end
+        return
+    end
+
+    local target_index = 1
+
+    if last_shown_number ~= nil then
+        for i, entry in ipairs(numbered) do
+            if entry.number == last_shown_number then
+                target_index = i
+                break
+            end
+        end
+    end
+
+    for i, entry in ipairs(numbered) do
+        obs.obs_sceneitem_set_visible(entry.item, i == target_index)
+    end
+
+    last_shown_number = numbered[target_index].number
+
     if items ~= nil then
         obs.sceneitem_list_release(items)
     end
@@ -114,6 +203,27 @@ function previous_hotkey(pressed)
 end
 
 
+function show_first_hotkey(pressed)
+    if pressed then
+        show_first()
+    end
+end
+
+
+function hide_hotkey(pressed)
+    if pressed then
+        hide_sources()
+    end
+end
+
+
+function show_hotkey(pressed)
+    if pressed then
+        show_source()
+    end
+end
+
+
 function script_description()
     return [[
 Numbered Source Switcher
@@ -121,14 +231,13 @@ Numbered Source Switcher
 Switches between numbered sources in the current scene.
 
 Name your sources:
-
 1
 2
 3
 4
 etc.
 
-"Numbered Source: Next" and "Numbered Source: Previous" hotkeys will cycle between them.
+Numbered Source hotkeys will cycle between them, hide all, or show the first one.
 ]]
 end
 
@@ -144,6 +253,24 @@ function script_load(settings)
         "numbered_source_previous",
         "Numbered Source: Previous",
         previous_hotkey
+    )
+
+    hotkey_show_first = obs.obs_hotkey_register_frontend(
+        "numbered_source_show_first",
+        "Numbered Source: Show First",
+        show_first_hotkey
+    )
+
+    hotkey_hide = obs.obs_hotkey_register_frontend(
+        "numbered_source_hide",
+        "Numbered Source: Hide",
+        hide_hotkey
+    )
+
+    hotkey_show = obs.obs_hotkey_register_frontend(
+        "numbered_source_show",
+        "Numbered Source: Show",
+        show_hotkey
     )
 
     local next_hotkey_save_array =
@@ -166,6 +293,39 @@ function script_load(settings)
     )
 
     obs.obs_data_array_release(previous_hotkey_save_array)
+
+
+    local show_first_hotkey_save_array =
+        obs.obs_data_get_array(settings, "numbered_source_show_first")
+
+    obs.obs_hotkey_load(
+        hotkey_show_first,
+        show_first_hotkey_save_array
+    )
+
+    obs.obs_data_array_release(show_first_hotkey_save_array)
+
+
+    local hide_hotkey_save_array =
+        obs.obs_data_get_array(settings, "numbered_source_hide")
+
+    obs.obs_hotkey_load(
+        hotkey_hide,
+        hide_hotkey_save_array
+    )
+
+    obs.obs_data_array_release(hide_hotkey_save_array)
+
+
+    local show_hotkey_save_array =
+        obs.obs_data_get_array(settings, "numbered_source_show")
+
+    obs.obs_hotkey_load(
+        hotkey_show,
+        show_hotkey_save_array
+    )
+
+    obs.obs_data_array_release(show_hotkey_save_array)
 end
 
 
@@ -192,4 +352,40 @@ function script_save(settings)
     )
 
     obs.obs_data_array_release(previous_hotkey_save_array)
+
+
+    local show_first_hotkey_save_array =
+        obs.obs_hotkey_save(hotkey_show_first)
+
+    obs.obs_data_set_array(
+        settings,
+        "numbered_source_show_first",
+        show_first_hotkey_save_array
+    )
+
+    obs.obs_data_array_release(show_first_hotkey_save_array)
+
+
+    local hide_hotkey_save_array =
+        obs.obs_hotkey_save(hotkey_hide)
+
+    obs.obs_data_set_array(
+        settings,
+        "numbered_source_hide",
+        hide_hotkey_save_array
+    )
+
+    obs.obs_data_array_release(hide_hotkey_save_array)
+
+
+    local show_hotkey_save_array =
+        obs.obs_hotkey_save(hotkey_show)
+
+    obs.obs_data_set_array(
+        settings,
+        "numbered_source_show",
+        show_hotkey_save_array
+    )
+
+    obs.obs_data_array_release(show_hotkey_save_array)
 end

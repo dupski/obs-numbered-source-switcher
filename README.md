@@ -15,7 +15,12 @@ For example, sources named `1`, `2`, `3`, and `4` can be used as a simple sequen
 2. In OBS Studio, open **Tools > Scripts**.
 3. Click the **+** button and select `numbered_source_switcher.lua`.
 4. Open **Settings > Hotkeys**.
-5. Assign hotkeys to **Numbered Source: Next** and **Numbered Source: Previous**.
+5. Assign hotkeys to the commands you want to use:
+   - **Numbered Source: Next**
+   - **Numbered Source: Previous**
+   - **Numbered Source: Show First**
+   - **Numbered Source: Hide**
+   - **Numbered Source: Show**
 
 ## Usage
 
@@ -23,6 +28,9 @@ The script checks the current scene whenever a hotkey is pressed. It sorts numbe
 
 - **Next** advances to the next numbered source.
 - **Previous** moves to the previous numbered source.
+- **Show First** shows the lowest numbered source.
+- **Hide** hides all numbered sources while remembering the source that was visible.
+- **Show** restores the numbered source that was visible before **Hide**. If there is no remembered source, it shows the lowest numbered source.
 - Cycling wraps from the last source back to the first, and from the first back to the last.
 - If no numbered source is currently visible, **Next** selects the lowest number and **Previous** selects the highest number.
 

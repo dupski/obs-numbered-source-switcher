@@ -1,13 +1,14 @@
 -- Numbered Source Switcher for OBS Studio
 --
--- This script cycles through scene items whose source names are whole numbers,
--- such as "1", "2", "3", and "4". It makes one numbered source visible at a
--- time and exposes Next and Previous hotkeys through OBS.
+-- This script cycles through scene items whose source names contain a whole
+-- number after some text, such as "Cam 1", "Scene 2", or "3". It makes one
+-- numbered source visible at a time and exposes Next and Previous hotkeys
+-- through OBS.
 --
 -- To use it, add the script in OBS under Tools > Scripts, name the sources in
--- the current scene with consecutive numbers, and configure the two hotkeys
--- under Settings > Hotkeys. Set ENABLE_CYCLING to true to wrap from the first
--- numbered source to the last, or from the last to the first.
+-- the current scene with a text prefix and a whole number, and configure the
+-- two hotkeys under Settings > Hotkeys. Set ENABLE_CYCLING to true to wrap
+-- from the first numbered source to the last, or from the last to the first.
 
 obs = obslua
 
@@ -22,7 +23,29 @@ hotkey_show = obs.OBS_INVALID_HOTKEY_ID
 last_shown_number = nil
 
 
--- Get all scene items whose source names are numbers
+-- Extract the trailing whole number from a source name, such as "Cam 1" -> 1
+function get_source_number(name)
+    if name == nil then
+        return nil
+    end
+
+    local prefix, digits = string.match(name, "^(.-)(%d+)$")
+
+    if prefix == nil or digits == nil then
+        return nil
+    end
+
+    local number = tonumber(digits)
+
+    if number == nil then
+        return nil
+    end
+
+    return number
+end
+
+
+-- Get all scene items whose source names contain a whole number at the end
 function get_numbered_items()
     local scene_source = obs.obs_frontend_get_current_scene()
 
@@ -36,23 +59,27 @@ function get_numbered_items()
     local numbered = {}
 
     if items ~= nil then
-        for _, item in ipairs(items) do
+        for index, item in ipairs(items) do
             local source = obs.obs_sceneitem_get_source(item)
             local name = obs.obs_source_get_name(source)
+            local number = get_source_number(name)
 
-            local number = tonumber(name)
-
-            if number ~= nil and tostring(math.floor(number)) == name then
+            if number ~= nil then
                 table.insert(numbered, {
                     number = number,
-                    item = item
+                    item = item,
+                    index = index
                 })
             end
         end
     end
 
-    -- Sort 1, 2, 3, 4... rather than alphabetically
+    -- Sort 1, 2, 3, 4... rather than alphabetically, preserving first match order for duplicates
     table.sort(numbered, function(a, b)
+        if a.number == b.number then
+            return a.index < b.index
+        end
+
         return a.number < b.number
     end)
 
@@ -249,14 +276,13 @@ Numbered Source Switcher
 
 Switches between numbered sources in the current scene.
 
-Name your sources:
-1
-2
-3
-4
-etc.
+Name your sources with a number at the end, for example:
+Lyric 1
+Lyric 2
+Lyric 3
+Lyric 4
 
-Numbered Source hotkeys will cycle between them, hide all, or show the first one.
+Numbered Source hotkeys will cycle through them, hide all, or show the first one.
 ]]
 end
 

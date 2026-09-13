@@ -83,6 +83,22 @@ function copy_transform(from_item, to_item)
     local crop = obs.obs_sceneitem_crop()
     obs.obs_sceneitem_get_crop(from_item, crop)
     obs.obs_sceneitem_set_crop(to_item, crop)
+
+    local show_transition = obs.obs_sceneitem_get_transition(from_item, true)
+    if show_transition ~= nil then
+        local show_transition_copy = obs.obs_source_duplicate(show_transition, obs.obs_source_get_name(show_transition), true)
+        obs.obs_sceneitem_set_transition(to_item, true, show_transition_copy)
+        obs.obs_source_release(show_transition_copy)
+    end
+    obs.obs_sceneitem_set_transition_duration(to_item, true, obs.obs_sceneitem_get_transition_duration(from_item, true))
+
+    local hide_transition = obs.obs_sceneitem_get_transition(from_item, false)
+    if hide_transition ~= nil then
+        local hide_transition_copy = obs.obs_source_duplicate(hide_transition, obs.obs_source_get_name(hide_transition), true)
+        obs.obs_sceneitem_set_transition(to_item, false, hide_transition_copy)
+        obs.obs_source_release(hide_transition_copy)
+    end
+    obs.obs_sceneitem_set_transition_duration(to_item, false, obs.obs_sceneitem_get_transition_duration(from_item, false))
 end
 
 
